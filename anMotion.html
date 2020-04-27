@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<!--
+	NOTES:
+	1. All tokens are represented by '$' sign in the template.
+	2. You can write your code only wherever mentioned.
+	3. All occurrences of existing tokens will be replaced by their appropriate values.
+	4. Blank lines will be removed automatically.
+	5. Remove unnecessary comments before creating your template.
+-->
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="authoring-tool" content="Adobe_Animate_CC">
+<title>anMotion</title>
+<!-- write your code here -->
+	<script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
+	<script src="anMotion.js?1585806112804"></script>
+	<script src="ndgmr.Collision.js"></script>
+
+<script >
+	var canvas, stage, exportRoot, anim_container, dom_overlay_container, fnStartAnimation;
+	function init() {
+		canvas = document.getElementById("canvas");
+		anim_container = document.getElementById("animation_container");
+		dom_overlay_container = document.getElementById("dom_overlay_container");
+		handleComplete();
+	}
+	function handleComplete() {
+		//This function is always called, irrespective of the content. You can use the variable "stage" after it is created in token create_stage.
+		exportRoot = new lib.anMotion();
+		stage = new createjs.Stage(canvas);
+		stage.addChild(exportRoot);
+
+
+		//------new code-----------------------------
+		const SPEED=10;
+		let iskeydown=false;
+		let col=1;
+		let num=0;
+		var boy=new lib.mc_boy();
+		boy.x=100;
+		boy.y=200;
+		boy.scaleX=0.25;
+		boy.scaleY=0.25;
+		exportRoot.addChild(boy);
+
+		window.addEventListener("keydown",keydownFun);
+		window.addEventListener("keyup",keyupFun);
+		function keydownFun(e){
+			//---去除长按键时一直执行gotoandplay（1）的代码，导致boy移动
+			if(iskeydown) return;
+			if(e.keyCode===39 || e.keyCode===37){
+				iskeydown=true;
+				boy.gotoAndPlay(1);
+				//---使用三元运算符获取col的值，为后面boy转向和移动服务
+				col= e.keyCode===39?1:-1;
+			}
+		}
+		function keyupFun(e){
+			boy.gotoAndStop(0);
+			iskeydown=false;
+		}
+
+		//---提高按键灵敏度，使用ticker
+		createjs.Ticker.addEventListener("tick",tickfun);
+		function tickfun(){
+			if(!iskeydown) return;
+			boy.scaleX=0.25*col;
+			boy.x+=SPEED*col;
+		}
+
+		//---https://github.com/olsn/Collision-Detection-for-EaselJS
+
+		setInterval(()=>{
+			//---创建ball影片剪辑
+			var ball= new lib.ball();
+			//Math.random()*(max-min+1)+min
+			ball.x=Math.floor(Math.random()*(400-10+1)+10);
+			ball.y=-50;
+			exportRoot.addChildAt(ball,1);
+			//---创建动画--
+			createjs.Tween.get(ball)
+			.to({y:350}, 2500)
+					.call(()=>{
+						//渐变完成执行
+						exportRoot.removeChild(ball)
+					})
+					//---侦测小球下落过程中的碰撞事件
+					.addEventListener("change", ()=>{
+						//---碰撞的js插件
+						let hit=ndgmr.checkRectCollision(ball,boy);
+						if(hit){
+							//---删除动画
+							createjs.Tween.removeTweens(ball);
+							//---删除ball
+							exportRoot.removeChild(ball);
+							num++;
+							document.getElementById("numDiv").innerHTML=num;
+						}
+					})
+		},1000)
+
+
+
+
+		//Registers the "tick" event listener.
+		fnStartAnimation = function() {
+			createjs.Ticker.setFPS(lib.properties.fps);
+			createjs.Ticker.addEventListener("tick", stage);
+		}
+		//Code to support hidpi screens and responsive scaling.
+		function makeResponsive(isResp, respDim, isScale, scaleType) {
+			var lastW, lastH, lastS=1;
+			window.addEventListener('resize', resizeCanvas);
+			resizeCanvas();
+			function resizeCanvas() {
+				var w = lib.properties.width, h = lib.properties.height;
+				var iw = window.innerWidth, ih=window.innerHeight;
+				var pRatio = window.devicePixelRatio || 1, xRatio=iw/w, yRatio=ih/h, sRatio=1;
+				if(isResp) {
+					if((respDim=='width'&&lastW==iw) || (respDim=='height'&&lastH==ih)) {
+						sRatio = lastS;
+					}
+					else if(!isScale) {
+						if(iw<w || ih<h)
+							sRatio = Math.min(xRatio, yRatio);
+					}
+					else if(scaleType==1) {
+						sRatio = Math.min(xRatio, yRatio);
+					}
+					else if(scaleType==2) {
+						sRatio = Math.max(xRatio, yRatio);
+					}
+				}
+				canvas.width = w*pRatio*sRatio;
+				canvas.height = h*pRatio*sRatio;
+				canvas.style.width = dom_overlay_container.style.width = anim_container.style.width =  w*sRatio+'px';
+				canvas.style.height = anim_container.style.height = dom_overlay_container.style.height = h*sRatio+'px';
+				stage.scaleX = pRatio*sRatio;
+				stage.scaleY = pRatio*sRatio;
+				lastW = iw; lastH = ih; lastS = sRatio;
+			}
+		}
+		makeResponsive(false,'both',false,1);
+		fnStartAnimation();
+	}
+</script>
+<!-- write your code here -->
+</head>
+<body onload="init();" style="margin:0px;">
+	<div id="animation_container" style="background-color:rgba(102, 204, 255, 1.00); width:550px; height:400px">
+		<div id="numDiv"></div>
+		<canvas id="canvas" width="550" height="400" style="position: absolute; display: block; background-color:rgba(102, 204, 255, 1.00);"></canvas>
+		<div id="dom_overlay_container" style="pointer-events:none; overflow:hidden; width:550px; height:400px; position: absolute; left: 0px; top: 0px; display: block;">
+		</div>
+	</div>
+</body>
+</html>
